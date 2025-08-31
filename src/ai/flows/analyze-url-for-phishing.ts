@@ -57,6 +57,7 @@ export async function analyzeUrlForPhishing(
 ): Promise<AnalyzeUrlForPhishingOutput> {
   try {
     const {output} = await analyzeUrlForPhishingFlow(input);
+    
     // The model might return a JSON string, so we need to parse it.
     if (typeof output === 'string') {
         try {
