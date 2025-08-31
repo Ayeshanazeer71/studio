@@ -16,52 +16,15 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { analyzeUrl } from "./actions"
 import type { AnalyzeUrlForPhishingOutput } from "@/ai/flows/analyze-url-for-phishing"
-import { LoaderCircle, ShieldCheck, ShieldX, Link as LinkIcon, AlertTriangle, ShieldQuestion } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoaderCircle, ShieldCheck, ShieldX, Link as LinkIcon, AlertTriangle } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const formSchema = z.object({
   url: z.string().url({ message: "Please enter a valid URL." }),
 })
-
-const getStatusStyles = (status: AnalyzeUrlForPhishingOutput['status']) => {
-    switch (status) {
-        case 'unsafe':
-            return {
-                borderColor: 'border-red-500',
-                textColor: 'text-red-700',
-                icon: <ShieldX className="h-12 w-12 text-red-500" />,
-                title: 'Malicious Threat Detected',
-                bgColor: 'bg-red-50',
-            };
-        case 'suspicious':
-            return {
-                borderColor: 'border-yellow-500',
-                textColor: 'text-yellow-700',
-                icon: <ShieldQuestion className="h-12 w-12 text-yellow-500" />,
-                title: 'Potentially Suspicious',
-                bgColor: 'bg-yellow-50',
-            };
-        case 'safe':
-            return {
-                borderColor: 'border-green-500',
-                textColor: 'text-green-700',
-                icon: <ShieldCheck className="h-12 w-12 text-green-500" />,
-                title: 'URL Appears Safe',
-                bgColor: 'bg-green-50',
-            };
-        default: // error
-            return {
-                borderColor: 'border-gray-400',
-                textColor: 'text-gray-700',
-                icon: <AlertTriangle className="h-12 w-12 text-gray-500" />,
-                title: 'Analysis Error',
-                bgColor: 'bg-gray-50',
-            };
-    }
-}
 
 
 export default function UrlScannerPage() {
@@ -87,18 +50,16 @@ export default function UrlScannerPage() {
       setIsLoading(false)
     }
   }
-  
-  const statusStyles = result ? getStatusStyles(result.status) : getStatusStyles('error');
 
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
        <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">CyberGuard URL Scanner</CardTitle>
-          <p className="text-muted-foreground">
+          <CardTitle className="text-2xl font-bold">URL Scanner</CardTitle>
+          <CardDescription>
             Enter a URL to scan for phishing and malicious content.
-          </p>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -129,7 +90,7 @@ export default function UrlScannerPage() {
                 className="w-full sm:w-auto"
               >
                 {isLoading && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? "Analyzing..." : "Scan URL"}
+                {isLoading ? "Analyzing..." : "Analyze URL"}
               </Button>
             </form>
           </Form>
@@ -179,32 +140,25 @@ export default function UrlScannerPage() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
           >
-            <Card className={cn("border-2", statusStyles.borderColor, statusStyles.bgColor)}>
+            <Card className={cn("border-2", result.isSafe ? 'border-green-500' : 'border-red-500')}>
                 <CardHeader>
                     <div className="flex flex-col md:flex-row items-center gap-4">
-                        {statusStyles.icon}
+                        {result.isSafe ? (
+                            <ShieldCheck className="h-12 w-12 text-green-500" />
+                        ) : (
+                            <ShieldX className="h-12 w-12 text-red-500" />
+                        )}
                         <div className="flex-1 text-center md:text-left">
-                        <h2 className={cn("text-xl font-bold", statusStyles.textColor)}>
-                            {statusStyles.title}
-                        </h2>
-                        <p className="text-muted-foreground font-semibold">{result.confidence} Confidence</p>
+                          <h2 className={cn("text-xl font-bold", result.isSafe ? 'text-green-700' : 'text-red-700')}>
+                            {result.isSafe ? 'This URL is safe ✅' : 'This URL is unsafe ❌'}
+                          </h2>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {result.threats && result.threats.length > 0 && result.threats[0] !== 'none' && (
-                        <div>
-                            <h4 className="font-semibold mb-2">Identified Threats:</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {result.threats.map((threat, index) => (
-                                    <Badge key={index} variant="destructive">{threat}</Badge>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    <div className="p-4 bg-background/50 rounded-md space-y-2">
+                    <div className="p-4 bg-muted rounded-md space-y-2">
                         <h4 className="font-semibold">AI Analysis Report:</h4>
-                        <p className="text-sm text-muted-foreground font-mono">{result.details}</p>
+                        <p className="text-sm text-muted-foreground font-mono">{result.reason}</p>
                     </div>
               </CardContent>
             </Card>
