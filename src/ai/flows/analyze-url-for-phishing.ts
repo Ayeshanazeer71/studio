@@ -4,7 +4,7 @@
 /**
  * @fileOverview This file defines a Genkit flow for analyzing a URL to determine if it's a phishing attempt.
  *
- * The flow takes a URL as input and returns a safety assessment.
+ * The flow takes a URL as input and returns a safety assessment in a strict JSON format.
  * The exported function `analyzeUrlForPhishing` is the entry point for this flow.
  *
  * @remarks
@@ -27,20 +27,21 @@ export type AnalyzeUrlForPhishingInput = z.infer<
 >;
 
 /**
- * Output schema for the URL analysis, indicating if the URL is likely a phishing attempt.
+ * Output schema for the URL analysis, providing a structured security report.
  */
 const AnalyzeUrlForPhishingOutputSchema = z.object({
   status: z
-    .enum(['Safe', 'Suspicious', 'Malicious', 'Error'])
+    .enum(['safe', 'unsafe', 'suspicious', 'error'])
     .describe('The security status of the URL.'),
   confidence: z
-    .number()
-    .describe(
-      'The confidence level (0-1) in the status assessment.'
-    ),
-  reason: z
     .string()
-    .describe('A simple explanation for the security assessment.'),
+    .describe('The confidence level (0% to 100%) in the status assessment.'),
+  threats: z
+    .array(z.enum(['malware', 'phishing', 'spam', 'none']))
+    .describe('A list of potential threats identified.'),
+  details: z
+    .string()
+    .describe('A short explanation for the security assessment.'),
 });
 export type AnalyzeUrlForPhishingOutput = z.infer<
   typeof AnalyzeUrlForPhishingOutputSchema
@@ -55,14 +56,31 @@ export async function analyzeUrlForPhishing(
   input: AnalyzeUrlForPhishingInput
 ): Promise<AnalyzeUrlForPhishingOutput> {
   try {
-    return await analyzeUrlForPhishingFlow(input);
+    const {output} = await analyzeUrlForPhishingFlow(input);
+    // The model might return a JSON string, so we need to parse it.
+    if (typeof output === 'string') {
+        try {
+            return JSON.parse(output);
+        } catch (e) {
+             console.error('Error parsing JSON output from model:', e);
+             return {
+                status: 'error',
+                confidence: '0%',
+                threats: [],
+                details: "Failed to parse the analysis result.",
+             };
+        }
+    }
+    return output!;
+
   } catch (error) {
     console.error('Error analyzing URL:', error);
     // Instead of crashing, return a structured error response.
     return {
-      status: 'Error',
-      confidence: 0,
-      reason: "Unable to analyze due to server issue, please try again later",
+        status: 'error',
+        confidence: '0%',
+        threats: [],
+        details: 'Unable to analyze due to server or scanning issue.',
     };
   }
 }
@@ -70,7 +88,7 @@ export async function analyzeUrlForPhishing(
 const analyzeUrlPrompt = ai.definePrompt({
   name: 'analyzeUrlPrompt',
   input: {schema: AnalyzeUrlForPhishingInputSchema},
-  output: {schema: AnalyzeUrlForPhishingOutputSchema},
+  output: {schema: AnalyzeUrlForPhishingOutputSchema, format: 'json'},
   config: {
     safetySettings: [
       {
@@ -79,23 +97,28 @@ const analyzeUrlPrompt = ai.definePrompt({
       },
     ],
   },
-  prompt: `You are a security AI. I will give you a URL. Your task is to:
+  prompt: `You are an AI security analyzer for the "Guardian Eye" application. Your task is to analyze any given URL and return the result in **strict JSON format** only.
 
-First, check if the URL is accessible (without actually opening malicious links).
+Output JSON must follow this structure:
 
-Then analyze the structure of the domain (e.g., is it similar to a real brand like Bank of America but suspicious?).
+{
+  "status": "safe | unsafe | suspicious | error",
+  "confidence": "0% to 100%",
+  "threats": ["malware", "phishing", "spam", "none"],
+  "details": "Short explanation of why this result was given."
+}
 
-Detect if it looks like phishing, scam, or safe.
+Rules:
+- Never write extra text, only output JSON.
+- If URL cannot be analyzed, return:
+  {
+    "status": "error",
+    "confidence": "0%",
+    "threats": [],
+    "details": "Unable to analyze due to server or scanning issue."
+  }
 
-Finally, give a clear report with:
-
-Status: Safe / Suspicious / Malicious / Error
-
-Confidence: %
-
-Reason in simple words.
-
-URL: {{{url}}}
+URL to analyze: {{{url}}}
 `,
 });
 
@@ -106,7 +129,7 @@ const analyzeUrlForPhishingFlow = ai.defineFlow(
   {
     name: 'analyzeUrlForPhishingFlow',
     inputSchema: AnalyzeUrlForPhishingInputSchema,
-    outputSchema: AnalyzeUrlForPhishingOutputSchema,
+    outputSchema: z.any(), // Output can be JSON object or string
   },
   async input => {
     const {output} = await analyzeUrlPrompt(input);

@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { analyzeUrl } from "./actions"
 import type { AnalyzeUrlForPhishingOutput } from "@/ai/flows/analyze-url-for-phishing"
 import { LoaderCircle, ShieldCheck, ShieldX, Link as LinkIcon, AlertTriangle, ShieldQuestion } from "lucide-react"
@@ -26,7 +27,7 @@ const formSchema = z.object({
 
 const getStatusStyles = (status: AnalyzeUrlForPhishingOutput['status']) => {
     switch (status) {
-        case 'Malicious':
+        case 'unsafe':
             return {
                 borderColor: 'border-red-500/50',
                 textColor: 'text-red-400',
@@ -34,7 +35,7 @@ const getStatusStyles = (status: AnalyzeUrlForPhishingOutput['status']) => {
                 title: 'Malicious Threat Detected',
                 gradient: 'bg-gradient-to-r from-red-600 to-red-400',
             };
-        case 'Suspicious':
+        case 'suspicious':
             return {
                 borderColor: 'border-yellow-500/50',
                 textColor: 'text-yellow-400',
@@ -42,7 +43,7 @@ const getStatusStyles = (status: AnalyzeUrlForPhishingOutput['status']) => {
                 title: 'Potentially Suspicious',
                 gradient: 'bg-gradient-to-r from-yellow-600 to-yellow-400',
             };
-        case 'Safe':
+        case 'safe':
             return {
                 borderColor: 'border-green-500/50',
                 textColor: 'text-green-400',
@@ -50,7 +51,7 @@ const getStatusStyles = (status: AnalyzeUrlForPhishingOutput['status']) => {
                 title: 'URL Appears Safe',
                 gradient: 'bg-gradient-to-r from-green-600 to-green-400',
             };
-        default: // Error
+        default: // error
             return {
                 borderColor: 'border-gray-500/50',
                 textColor: 'text-gray-400',
@@ -86,8 +87,8 @@ export default function UrlScannerPage() {
     }
   }
   
-  const confidenceLevel = result ? Math.round(result.confidence * 100) : 0;
-  const statusStyles = result ? getStatusStyles(result.status) : getStatusStyles('Error');
+  const confidenceLevel = result ? parseInt(result.confidence.replace('%', '')) : 0;
+  const statusStyles = result ? getStatusStyles(result.status) : getStatusStyles('error');
 
 
   return (
@@ -211,14 +212,26 @@ export default function UrlScannerPage() {
                       transition={{ duration: 1, delay: 0.7 }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white/90">
-                      {confidenceLevel}% Confidence
+                      {result.confidence} Confidence
                     </div>
                   </div>
                 </div>
               </div>
+              
+              {result.threats && result.threats.length > 0 && result.threats[0] !== 'none' && (
+                  <div className="mt-4">
+                      <h4 className="font-semibold text-pink-400 mb-2">Identified Threats:</h4>
+                      <div className="flex flex-wrap gap-2">
+                          {result.threats.map((threat, index) => (
+                              <Badge key={index} variant="destructive" className="bg-red-500/20 text-red-300 border-red-500/50">{threat}</Badge>
+                          ))}
+                      </div>
+                  </div>
+              )}
+
               <div className="mt-6 p-4 bg-black/30 rounded-lg border border-white/10">
                 <h4 className="font-semibold text-pink-400 mb-2">AI Analysis Report:</h4>
-                <p className="text-sm text-pink-300/80 font-mono">{result.reason}</p>
+                <p className="text-sm text-pink-300/80 font-mono">{result.details}</p>
               </div>
             </motion.div>
           )}
