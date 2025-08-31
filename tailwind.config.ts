@@ -19,7 +19,7 @@ export default {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
         headline: ['Inter', 'sans-serif'],
-        code: ['Source Code Pro', 'monospace'],
+        mono: ['"Source Code Pro"', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -67,6 +67,7 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        xl: 'calc(var(--radius) + 4px)',
       },
       keyframes: {
         'accordion-down': {
@@ -90,6 +91,10 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
+      boxShadow: {
+        'safe': '0 0 20px rgba(0, 255, 0, 0.5)',
+        'unsafe': '0 0 20px rgba(255, 0, 0, 0.5)',
+      }
     },
   },
   plugins: [require('tailwindcss-animate')],

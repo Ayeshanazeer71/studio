@@ -17,9 +17,10 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
-import { Activity, ScanLine, ShieldCheck, ShieldX } from "lucide-react"
+import { ScanLine, ShieldCheck, ShieldX } from "lucide-react"
+import { useState, useEffect } from "react"
 
-const chartData = [
+const generateChartData = () => [
   { name: "Sun", total: Math.floor(Math.random() * 2000) + 500 },
   { name: "Mon", total: Math.floor(Math.random() * 2000) + 500 },
   { name: "Tue", total: Math.floor(Math.random() * 2000) + 500 },
@@ -38,13 +39,25 @@ const recentActivities = [
 ]
 
 export default function DashboardPage() {
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  useEffect(() => {
+    setChartData(generateChartData());
+  }, []);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
+       <header className="text-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-glow">
+            Cyber Security Dashboard
+          </h1>
+        </header>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Scans</CardTitle>
-            <ScanLine className="h-4 w-4 text-muted-foreground" />
+            <ScanLine className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12,543</div>
@@ -56,7 +69,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Threats Found</CardTitle>
-            <ShieldX className="h-4 w-4 text-destructive" />
+            <ShieldX className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">342</div>
@@ -90,13 +103,13 @@ export default function DashboardPage() {
               <BarChart data={chartData}>
                 <XAxis
                   dataKey="name"
-                  stroke="#888888"
+                  stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  stroke="#888888"
+                  stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
@@ -129,11 +142,11 @@ export default function DashboardPage() {
                 {recentActivities.map((activity, index) => (
                   <TableRow key={index}>
                     <TableCell>
-                      <Badge variant="outline">{activity.type}</Badge>
+                      <Badge variant="outline" className="border-purple-400 text-purple-400">{activity.type}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium truncate max-w-48">{activity.value}</TableCell>
+                    <TableCell className="font-mono text-xs truncate max-w-48">{activity.value}</TableCell>
                     <TableCell>
-                       <Badge variant={activity.status === 'Safe' ? 'secondary' : 'destructive'}>{activity.status}</Badge>
+                       <Badge variant={activity.status === 'Safe' ? 'success' : 'destructive'}>{activity.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">{activity.date}</TableCell>
                   </TableRow>
