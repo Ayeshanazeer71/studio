@@ -30,8 +30,8 @@ export type AnalyzeUrlForPhishingInput = z.infer<
  * Output schema for the URL analysis, providing a structured security report.
  */
 const AnalyzeUrlForPhishingOutputSchema = z.object({
-  isSafe: z.boolean().describe('Whether the URL is safe or not.'),
-  reason: z.string().describe('A short explanation for the security assessment.'),
+  isSafe: z.boolean().describe('Whether the URL is safe (true) or unsafe (false).'),
+  reason: z.string().describe('A short, one-sentence explanation for the assessment.'),
 });
 export type AnalyzeUrlForPhishingOutput = z.infer<
   typeof AnalyzeUrlForPhishingOutputSchema
@@ -45,18 +45,8 @@ export type AnalyzeUrlForPhishingOutput = z.infer<
 export async function analyzeUrlForPhishing(
   input: AnalyzeUrlForPhishingInput
 ): Promise<AnalyzeUrlForPhishingOutput> {
-  try {
-    const {output} = await analyzeUrlForPhishingFlow(input);
-    return output!;
-
-  } catch (error) {
-    console.error('Error analyzing URL:', error);
-    // Instead of crashing, return a structured error response.
-    return {
-        isSafe: false,
-        reason: 'Unable to analyze due to server or scanning issue. Please try again later.',
-    };
-  }
+  const {output} = await analyzeUrlForPhishingFlow(input);
+  return output!;
 }
 
 const analyzeUrlPrompt = ai.definePrompt({
@@ -71,16 +61,16 @@ const analyzeUrlPrompt = ai.definePrompt({
       },
     ],
   },
-  prompt: `You are an AI security analyzer for the "Guardian Eye" application. Your task is to analyze any given URL and determine if it is safe or not.
+  prompt: `You are an AI security analyzer for the "Guardian Eye" application. Your task is to analyze a URL and determine if it is safe or unsafe.
 
-  Your response should be based on the following factors:
-  - The URL's structure and whether it mimics legitimate sites (e.g., "bankofamerica-update.xyz" is suspicious).
-  - The use of uncommon TLDs often associated with scams.
-  - Presence of suspicious keywords like "login," "secure," "update," etc. in a strange context.
+Your response must be based on:
+- URL structure and suspicious keywords (e.g., "login", "secure", "update").
+- Domain impersonation of legitimate sites (e.g., "bankofamerica-update.xyz").
+- Use of uncommon TLDs associated with scams.
 
-  Based on your analysis, decide if the URL is safe. Provide a concise reason for your decision.
+Based on your analysis, decide if the URL is safe or unsafe. Provide a concise, one-sentence reason for your decision. Set 'isSafe' to true for safe sites and false for unsafe ones.
 
-  URL to analyze: {{{url}}}
+URL to analyze: {{{url}}}
 `,
 });
 
@@ -94,7 +84,15 @@ const analyzeUrlForPhishingFlow = ai.defineFlow(
     outputSchema: AnalyzeUrlForPhishingOutputSchema,
   },
   async input => {
-    const {output} = await analyzeUrlPrompt(input);
-    return output!;
+    try {
+        const {output} = await analyzeUrlPrompt(input);
+        return output!;
+    } catch (e) {
+        console.error("Error in analyzeUrlForPhishingFlow:", e);
+        return {
+            isSafe: false,
+            reason: 'Unable to analyze due to a server or scanning issue. Please try again later.',
+        };
+    }
   }
 );
