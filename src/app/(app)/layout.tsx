@@ -12,7 +12,7 @@ export default function AppLayout({
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
-        <main className="min-h-[calc(100vh-60px)] bg-muted/40">
+        <main className="bg-background">
             {children}
         </main>
       </SidebarInset>

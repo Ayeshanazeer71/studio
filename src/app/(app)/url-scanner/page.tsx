@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -12,16 +13,12 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Progress } from "@/components/ui/progress"
 import { analyzeUrl } from "./actions"
 import type { AnalyzeUrlForPhishingOutput } from "@/ai/flows/analyze-url-for-phishing"
-import { LoaderCircle, ShieldCheck, ShieldX, Terminal } from "lucide-react"
+import { LoaderCircle, ShieldCheck, ShieldX, Link as LinkIcon, AlertTriangle } from "lucide-react"
 
 const formSchema = z.object({
   url: z.string().url({ message: "Please enter a valid URL." }),
@@ -50,111 +47,148 @@ export default function UrlScannerPage() {
       setIsLoading(false)
     }
   }
+  
+  const confidenceLevel = result ? Math.round(result.confidence * 100) : 0;
+  const isPhishing = result?.isPhishing ?? false;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>URL Phishing Scanner</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL to Analyze</FormLabel>
-                    <FormControl>
+    <div className="min-h-[calc(100vh-60px)] bg-black text-pink-300 flex flex-col items-center justify-center p-4 overflow-hidden">
+      <div 
+        className="absolute inset-0 z-0 opacity-20" 
+        style={{
+          backgroundImage: 'radial-gradient(circle at 50% 50%, #ff007f 0%, #000000 70%)',
+        }}
+      />
+      <div className="relative z-10 w-full max-w-2xl text-center">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-pink-600">
+            CyberGuard URL Scanner
+          </h1>
+          <p className="mt-2 text-pink-400/80">
+            Enter a URL to scan for phishing and malicious content.
+          </p>
+        </motion.div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-pink-400/50" />
                       <Input
                         placeholder="https://example.com"
+                        className="w-full pl-12 pr-4 py-3 bg-black/50 border-2 border-pink-500/30 rounded-full text-lg text-pink-300 placeholder:text-pink-400/50 transition-all duration-300 focus:border-pink-500 focus:ring-4 focus:ring-pink-500/20 shadow-[0_0_15px_rgba(255,0,127,0.2)] focus:shadow-[0_0_30px_rgba(255,0,127,0.4)]"
                         {...field}
                         disabled={isLoading}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-                {isLoading && (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isLoading ? "Analyzing..." : "Analyze URL"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-
-      <AnimatePresence>
-        {isLoading && (
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
+                    </div>
+                  </FormControl>
+                  <FormMessage className="text-red-400" />
+                </FormItem>
+              )}
+            />
+            <Button 
+              type="submit" 
+              disabled={isLoading} 
+              className="w-full md:w-auto text-lg font-bold bg-pink-600 text-black rounded-full px-10 py-6 transition-all duration-300 hover:bg-pink-500 hover:shadow-[0_0_25px_rgba(255,0,127,0.6)] transform hover:scale-105 active:scale-100 disabled:opacity-50"
             >
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <LoaderCircle className="h-5 w-5 animate-spin" />
-                            <span>Analyzing URL</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground mb-2">Our AI is inspecting the URL for any signs of phishing...</p>
-                        <Progress value={undefined} className="w-full h-2 animate-pulse" />
-                    </CardContent>
-                </Card>
+              {isLoading && <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />}
+              {isLoading ? "Analyzing..." : "Scan URL"}
+            </Button>
+          </form>
+        </Form>
+      </div>
+      
+      <div className="relative z-10 w-full max-w-2xl mt-8">
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="p-6 bg-black/50 border border-pink-500/30 rounded-2xl backdrop-blur-sm text-center"
+            >
+              <LoaderCircle className="h-8 w-8 text-pink-400 animate-spin mx-auto mb-4" />
+              <p className="text-lg font-semibold text-pink-300">Scanning in progress...</p>
+              <p className="text-pink-400/80">Our AI is dissecting the digital DNA of the URL.</p>
             </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {error && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <Alert variant="destructive">
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Analysis Failed</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="p-6 bg-red-900/30 border border-red-500/50 rounded-2xl backdrop-blur-sm text-center"
+            >
+              <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-red-300">Analysis Failed</h3>
+              <p className="text-red-400/80">{error}</p>
             </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {result && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-                <Card className={result.isPhishing ? "border-destructive" : "border-green-500"}>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            {result.isPhishing ? (
-                                <ShieldX className="h-6 w-6 text-destructive" />
-                            ) : (
-                                <ShieldCheck className="h-6 w-6 text-green-500" />
-                            )}
-                            <span>Analysis Complete</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Alert variant={result.isPhishing ? "destructive" : "default"} className={!result.isPhishing ? "bg-green-500/10 border-green-500/50" : ""}>
-                            <AlertTitle className="text-lg font-bold">
-                                {result.isPhishing ? "Warning: Potential Phishing Attempt" : "This URL appears to be safe."}
-                            </AlertTitle>
-                            <AlertDescription>
-                                Confidence Score: {Math.round(result.confidence * 100)}%
-                            </AlertDescription>
-                        </Alert>
-                        <div className="p-4 bg-muted rounded-md space-y-2">
-                            <h4 className="font-semibold">AI Explanation:</h4>
-                            <p className="text-sm text-muted-foreground font-code">{result.explanation}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+        <AnimatePresence>
+          {result && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.5, ease: "circOut" }}
+              className={cn(
+                "p-6 bg-black/50 border rounded-2xl backdrop-blur-sm shadow-[0_0_40px_rgba(255,0,127,0.2)]",
+                isPhishing ? "border-red-500/50" : "border-green-500/50"
+              )}
+            >
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <motion.div
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1, delay: 0.5 }}
+                >
+                   {isPhishing ? (
+                    <ShieldX className="h-20 w-20 text-red-500" />
+                  ) : (
+                    <ShieldCheck className="h-20 w-20 text-green-500" />
+                  )}
+                </motion.div>
+                <div className="flex-1 text-center md:text-left">
+                  <h2 className={cn("text-2xl font-bold", isPhishing ? "text-red-400" : "text-green-400")}>
+                    {isPhishing ? "Potential Threat Detected" : "URL Appears Safe"}
+                  </h2>
+                   <div className="relative mt-2 h-6 w-full bg-gray-700/50 rounded-full overflow-hidden border border-white/10">
+                    <motion.div
+                      className={cn("h-full rounded-full", isPhishing ? "bg-gradient-to-r from-red-600 to-red-400" : "bg-gradient-to-r from-green-600 to-green-400")}
+                      style={{ width: `${confidenceLevel}%` }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${confidenceLevel}%` }}
+                      transition={{ duration: 1, delay: 0.7 }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white/90">
+                      {confidenceLevel}% Confidence
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 p-4 bg-black/30 rounded-lg border border-white/10">
+                <h4 className="font-semibold text-pink-400 mb-2">AI Analysis Report:</h4>
+                <p className="text-sm text-pink-300/80 font-mono">{result.explanation}</p>
+              </div>
             </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

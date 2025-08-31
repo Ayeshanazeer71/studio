@@ -61,6 +61,14 @@ const analyzeUrlPrompt = ai.definePrompt({
   name: 'analyzeUrlPrompt',
   input: {schema: AnalyzeUrlForPhishingInputSchema},
   output: {schema: AnalyzeUrlForPhishingOutputSchema},
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE',
+      },
+    ],
+  },
   prompt: `You are an expert in identifying phishing attempts. Analyze the given URL and determine if it is likely a phishing attempt.
 
 URL: {{{url}}}
