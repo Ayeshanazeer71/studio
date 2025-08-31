@@ -54,7 +54,17 @@ export type AnalyzeUrlForPhishingOutput = z.infer<
 export async function analyzeUrlForPhishing(
   input: AnalyzeUrlForPhishingInput
 ): Promise<AnalyzeUrlForPhishingOutput> {
-  return analyzeUrlForPhishingFlow(input);
+  try {
+    return await analyzeUrlForPhishingFlow(input);
+  } catch (error) {
+    console.error('Error analyzing URL:', error);
+    // Instead of crashing, return a structured error response.
+    return {
+      isPhishing: true, // Treat errors as suspicious
+      confidence: 0,
+      explanation: "Error analyzing URL. Please try again later.",
+    };
+  }
 }
 
 const analyzeUrlPrompt = ai.definePrompt({
@@ -69,13 +79,18 @@ const analyzeUrlPrompt = ai.definePrompt({
       },
     ],
   },
-  prompt: `You are an expert in identifying phishing attempts. Analyze the given URL and determine if it is likely a phishing attempt.
+  prompt: `You are a security assistant.
+Your task is to analyze the given URL and decide if it is safe or potentially fake (phishing/malicious).
+
+Steps to follow:
+1. Check if the domain name looks suspicious (e.g., unusual spellings, extra words like "update", "secure-login", "free-gift", etc.).
+2. Compare with well-known domains (e.g., "bankofamerica.com" is real, but "bankofamerica-update-account.xyz" is suspicious).
+3. Identify if the URL uses uncommon TLDs (.xyz, .top, .ru) often linked with scams.
 
 URL: {{{url}}}
 
-Consider factors such as URL structure, domain age, presence of security certificates, and content.
-
-Return a JSON object indicating whether the URL is likely a phishing attempt, your confidence level (0-1), and a brief explanation.
+Based on your analysis, provide an explanation. If the site is suspicious, your explanation should be "Suspicious Website ⚠️". If it looks fine, it should be "Safe Website ✅".
+Set the isPhishing flag accordingly.
 `,
 });
 
