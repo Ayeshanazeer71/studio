@@ -1,61 +1,66 @@
 'use server';
 
 /**
- * @fileOverview Analyzes APK metadata for potential malware or suspicious permissions.
+ * @fileOverview Analyzes an APK's source for potential malware or suspicious attributes.
  *
- * - analyzeApkMetadataForMalice - A function that analyzes APK metadata for malice.
- * - AnalyzeApkMetadataForMaliceInput - The input type for the analyzeApkMetadataForMalice function.
- * - AnalyzeApkMetadataForMaliceOutput - The return type for the analyzeApkMetadataForMalice function.
+ * - analyzeApkSourceForMalice - A function that analyzes an APK source for malice.
+ * - AnalyzeApkSourceForMaliceInput - The input type for the analyzeApkSourceForMalice function.
+ * - AnalyzeApkSourceForMaliceOutput - The return type for the analyzeApkSourceForMalice function.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-const AnalyzeApkMetadataForMaliceInputSchema = z.object({
-  apkMetadata: z
+const AnalyzeApkSourceForMaliceInputSchema = z.object({
+  apkSource: z
     .string()
     .describe(
-      'The APK metadata to analyze, including permissions, size, and source.'
+      'The source of the APK to analyze, such as a URL or a description of where it was found.'
     ),
 });
-export type AnalyzeApkMetadataForMaliceInput =
-  z.infer<typeof AnalyzeApkMetadataForMaliceInputSchema>;
+export type AnalyzeApkSourceForMaliceInput =
+  z.infer<typeof AnalyzeApkSourceForMaliceInputSchema>;
 
-const AnalyzeApkMetadataForMaliceOutputSchema = z.object({
+const AnalyzeApkSourceForMaliceOutputSchema = z.object({
   isMalicious: z
     .boolean()
     .describe('Whether the APK is likely to be malicious.'),
   reason: z
     .string()
     .describe(
-      'The reason why the APK is considered malicious, including suspicious permissions or other metadata anomalies.'
+      'The reason why the APK is considered malicious, including suspicious permissions, source reputation, or other metadata anomalies.'
     ),
 });
-export type AnalyzeApkMetadataForMaliceOutput =
-  z.infer<typeof AnalyzeApkMetadataForMaliceOutputSchema>;
+export type AnalyzeApkSourceForMaliceOutput =
+  z.infer<typeof AnalyzeApkSourceForMaliceOutputSchema>;
 
-export async function analyzeApkMetadataForMalice(
-  input: AnalyzeApkMetadataForMaliceInput
-): Promise<AnalyzeApkMetadataForMaliceOutput> {
-  return analyzeApkMetadataForMaliceFlow(input);
+export async function analyzeApkSourceForMalice(
+  input: AnalyzeApkSourceForMaliceInput
+): Promise<AnalyzeApkSourceForMaliceOutput> {
+  return analyzeApkSourceForMaliceFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'analyzeApkMetadataForMalicePrompt',
-  input: {schema: AnalyzeApkMetadataForMaliceInputSchema},
-  output: {schema: AnalyzeApkMetadataForMaliceOutputSchema},
-  prompt: `You are an expert in Android security. You will analyze the provided APK metadata to determine if the app is likely to be malicious. Pay close attention to the requested permissions and the source of the APK.
+  name: 'analyzeApkSourceForMalicePrompt',
+  input: {schema: AnalyzeApkSourceForMaliceInputSchema},
+  output: {schema: AnalyzeApkSourceForMaliceOutputSchema},
+  prompt: `You are an expert in Android security. Your task is to analyze the provided APK source information to determine if an app from that source is likely to be malicious.
 
-APK Metadata: {{{apkMetadata}}}
+Consider the following factors:
+- The reputation of the source URL or platform. Is it a known official app store or a third-party site?
+- The description of the app. Does it make suspicious claims?
+- Infer potential permissions based on the app's description and common malware patterns (e.g., a simple game asking for contact access is suspicious).
 
-Based on the metadata, determine if the APK is likely to be malicious and provide a reason for your determination.`,
+APK Source Information: {{{apkSource}}}
+
+Based on this information, determine if the APK is likely to be malicious and provide a concise reason for your determination. Focus on the most critical risk factors.`,
 });
 
-const analyzeApkMetadataForMaliceFlow = ai.defineFlow(
+const analyzeApkSourceForMaliceFlow = ai.defineFlow(
   {
-    name: 'analyzeApkMetadataForMaliceFlow',
-    inputSchema: AnalyzeApkMetadataForMaliceInputSchema,
-    outputSchema: AnalyzeApkMetadataForMaliceOutputSchema,
+    name: 'analyzeApkSourceForMaliceFlow',
+    inputSchema: AnalyzeApkSourceForMaliceInputSchema,
+    outputSchema: AnalyzeApkSourceForMaliceOutputSchema,
   },
   async input => {
     const {output} = await prompt(input);

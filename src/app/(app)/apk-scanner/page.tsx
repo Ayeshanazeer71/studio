@@ -16,37 +16,34 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { analyzeApk } from "./actions"
-import type { AnalyzeApkMetadataForMaliceOutput } from "@/ai/flows/analyze-apk-metadata-for-malice"
-import { LoaderCircle, ShieldCheck, ShieldX, Terminal } from "lucide-react"
+import type { AnalyzeApkSourceForMaliceOutput } from "@/ai/flows/analyze-apk-metadata-for-malice"
+import { LoaderCircle, ShieldCheck, ShieldX, Terminal, FileCode } from "lucide-react"
 
 const formSchema = z.object({
-  permissions: z.string().min(10, { message: "Please provide permissions details." }),
-  size: z.string().min(1, { message: "Please provide APK size (e.g., 25MB)." }),
-  source: z.string().min(3, { message: "Please provide APK source (e.g., app store name, website)." }),
+  source: z.string().min(5, { message: "Please provide a valid source (e.g., URL or app store name)." }),
 })
 
 export default function ApkScannerPage() {
-  const [result, setResult] = useState<AnalyzeApkMetadataForMaliceOutput | null>(null)
+  const [result, setResult] = useState<AnalyzeApkSourceForMaliceOutput | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { permissions: "", size: "", source: "" },
+    defaultValues: { source: "" },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     setError(null)
     setResult(null)
-    const metadata = `Permissions: ${values.permissions}\nSize: ${values.size}\nSource: ${values.source}`
+    
     try {
-      const analysisResult = await analyzeApk(metadata)
+      const analysisResult = await analyzeApk(values.source)
       setResult(analysisResult)
     } catch (e: any) {
       setError(e.message || "An error occurred during analysis.")
@@ -59,63 +56,38 @@ export default function ApkScannerPage() {
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>APK Metadata Scanner</CardTitle>
-          <CardDescription>Enter the APK's metadata to check for potential risks.</CardDescription>
+          <CardTitle>APK Source Scanner</CardTitle>
+          <CardDescription>Enter the APK's source (e.g., a URL or store page) to check for potential risks.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="permissions"
+                name="source"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Permissions</FormLabel>
+                    <FormLabel>APK Source</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="e.g., android.permission.INTERNET, android.permission.READ_CONTACTS"
-                        className="min-h-[100px] font-code"
-                        {...field}
-                        disabled={isLoading}
-                      />
+                      <div className="relative">
+                        <FileCode className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                            placeholder="e.g., https://play.google.com/store/apps/details?id=com.example.app" 
+                            className="pl-10"
+                            {...field} 
+                            disabled={isLoading} 
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <div className="grid sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="size"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>App Size</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., 50MB" {...field} disabled={isLoading} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="source"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>App Source</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Google Play Store, third-party site" {...field} disabled={isLoading} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
               <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
                 {isLoading && (
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {isLoading ? "Analyzing..." : "Analyze APK"}
+                {isLoading ? "Analyzing..." : "Analyze Source"}
               </Button>
             </form>
           </Form>
@@ -129,11 +101,11 @@ export default function ApkScannerPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <LoaderCircle className="h-5 w-5 animate-spin" />
-                            <span>Analyzing APK Metadata</span>
+                            <span>Analyzing APK Source</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground mb-2">Our AI is checking permissions and other metadata for suspicious patterns...</p>
+                        <p className="text-muted-foreground mb-2">Our AI is checking the source for suspicious patterns and potential risks...</p>
                         <Progress value={undefined} className="w-full h-2 animate-pulse" />
                     </CardContent>
                 </Card>
@@ -170,12 +142,12 @@ export default function ApkScannerPage() {
                     <CardContent className="space-y-4">
                         <Alert variant={result.isMalicious ? "destructive" : "default"} className={!result.isMalicious ? "bg-green-500/10 border-green-500/50" : ""}>
                             <AlertTitle className="text-lg font-bold">
-                                {result.isMalicious ? "Warning: Potentially Malicious App" : "This App appears to be safe."}
+                                {result.isMalicious ? "Warning: Potentially Malicious Source" : "This source appears to be safe."}
                             </AlertTitle>
                         </Alert>
                         <div className="p-4 bg-muted rounded-md space-y-2">
                             <h4 className="font-semibold">AI Explanation:</h4>
-                            <p className="text-sm text-muted-foreground font-code">{result.reason}</p>
+                            <p className="text-sm text-muted-foreground font-mono">{result.reason}</p>
                         </div>
                     </CardContent>
                 </Card>
