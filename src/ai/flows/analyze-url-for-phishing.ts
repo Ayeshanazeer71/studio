@@ -30,17 +30,17 @@ export type AnalyzeUrlForPhishingInput = z.infer<
  * Output schema for the URL analysis, indicating if the URL is likely a phishing attempt.
  */
 const AnalyzeUrlForPhishingOutputSchema = z.object({
-  isPhishing: z
-    .boolean()
-    .describe('Whether the URL is likely a phishing attempt.'),
+  status: z
+    .enum(['Safe', 'Suspicious', 'Malicious', 'Error'])
+    .describe('The security status of the URL.'),
   confidence: z
     .number()
     .describe(
-      'The confidence level (0-1) that the URL is a phishing attempt.'
+      'The confidence level (0-1) in the status assessment.'
     ),
-  explanation: z
+  reason: z
     .string()
-    .describe('Explanation of why the URL is considered phishing.'),
+    .describe('A simple explanation for the security assessment.'),
 });
 export type AnalyzeUrlForPhishingOutput = z.infer<
   typeof AnalyzeUrlForPhishingOutputSchema
@@ -60,9 +60,9 @@ export async function analyzeUrlForPhishing(
     console.error('Error analyzing URL:', error);
     // Instead of crashing, return a structured error response.
     return {
-      isPhishing: true, // Treat errors as suspicious
+      status: 'Error',
       confidence: 0,
-      explanation: "Error analyzing URL. Please try again later.",
+      reason: "Unable to analyze due to server issue, please try again later",
     };
   }
 }
@@ -79,18 +79,23 @@ const analyzeUrlPrompt = ai.definePrompt({
       },
     ],
   },
-  prompt: `You are a security assistant.
-Your task is to analyze the given URL and decide if it is safe or potentially fake (phishing/malicious).
+  prompt: `You are a security AI. I will give you a URL. Your task is to:
 
-Steps to follow:
-1. Check if the domain name looks suspicious (e.g., unusual spellings, extra words like "update", "secure-login", "free-gift", etc.).
-2. Compare with well-known domains (e.g., "bankofamerica.com" is real, but "bankofamerica-update-account.xyz" is suspicious).
-3. Identify if the URL uses uncommon TLDs (.xyz, .top, .ru) often linked with scams.
+First, check if the URL is accessible (without actually opening malicious links).
+
+Then analyze the structure of the domain (e.g., is it similar to a real brand like Bank of America but suspicious?).
+
+Detect if it looks like phishing, scam, or safe.
+
+Finally, give a clear report with:
+
+Status: Safe / Suspicious / Malicious / Error
+
+Confidence: %
+
+Reason in simple words.
 
 URL: {{{url}}}
-
-Based on your analysis, provide an explanation. If the site is suspicious, your explanation should be "Suspicious Website ⚠️". If it looks fine, it should be "Safe Website ✅".
-Set the isPhishing flag accordingly.
 `,
 });
 

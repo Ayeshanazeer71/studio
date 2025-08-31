@@ -18,11 +18,49 @@ import {
 import { Input } from "@/components/ui/input"
 import { analyzeUrl } from "./actions"
 import type { AnalyzeUrlForPhishingOutput } from "@/ai/flows/analyze-url-for-phishing"
-import { LoaderCircle, ShieldCheck, ShieldX, Link as LinkIcon, AlertTriangle } from "lucide-react"
+import { LoaderCircle, ShieldCheck, ShieldX, Link as LinkIcon, AlertTriangle, ShieldQuestion } from "lucide-react"
 
 const formSchema = z.object({
   url: z.string().url({ message: "Please enter a valid URL." }),
 })
+
+const getStatusStyles = (status: AnalyzeUrlForPhishingOutput['status']) => {
+    switch (status) {
+        case 'Malicious':
+            return {
+                borderColor: 'border-red-500/50',
+                textColor: 'text-red-400',
+                icon: <ShieldX className="h-20 w-20 text-red-500" />,
+                title: 'Malicious Threat Detected',
+                gradient: 'bg-gradient-to-r from-red-600 to-red-400',
+            };
+        case 'Suspicious':
+            return {
+                borderColor: 'border-yellow-500/50',
+                textColor: 'text-yellow-400',
+                icon: <ShieldQuestion className="h-20 w-20 text-yellow-500" />,
+                title: 'Potentially Suspicious',
+                gradient: 'bg-gradient-to-r from-yellow-600 to-yellow-400',
+            };
+        case 'Safe':
+            return {
+                borderColor: 'border-green-500/50',
+                textColor: 'text-green-400',
+                icon: <ShieldCheck className="h-20 w-20 text-green-500" />,
+                title: 'URL Appears Safe',
+                gradient: 'bg-gradient-to-r from-green-600 to-green-400',
+            };
+        default: // Error
+            return {
+                borderColor: 'border-gray-500/50',
+                textColor: 'text-gray-400',
+                icon: <AlertTriangle className="h-20 w-20 text-gray-500" />,
+                title: 'Analysis Error',
+                gradient: 'bg-gradient-to-r from-gray-600 to-gray-400',
+            };
+    }
+}
+
 
 export default function UrlScannerPage() {
   const [result, setResult] = useState<AnalyzeUrlForPhishingOutput | null>(null)
@@ -49,7 +87,8 @@ export default function UrlScannerPage() {
   }
   
   const confidenceLevel = result ? Math.round(result.confidence * 100) : 0;
-  const isPhishing = result?.isPhishing ?? false;
+  const statusStyles = result ? getStatusStyles(result.status) : getStatusStyles('Error');
+
 
   return (
     <div className="min-h-[calc(100vh-60px)] bg-black text-pink-300 flex flex-col items-center justify-center p-4 overflow-hidden">
@@ -148,7 +187,7 @@ export default function UrlScannerPage() {
               transition={{ duration: 0.5, ease: "circOut" }}
               className={cn(
                 "p-6 bg-black/50 border rounded-2xl backdrop-blur-sm shadow-[0_0_40px_rgba(255,0,127,0.2)]",
-                isPhishing ? "border-red-500/50" : "border-green-500/50"
+                statusStyles.borderColor
               )}
             >
               <div className="flex flex-col md:flex-row items-center gap-6">
@@ -157,19 +196,15 @@ export default function UrlScannerPage() {
                   animate={{ pathLength: 1 }}
                   transition={{ duration: 1, delay: 0.5 }}
                 >
-                   {isPhishing ? (
-                    <ShieldX className="h-20 w-20 text-red-500" />
-                  ) : (
-                    <ShieldCheck className="h-20 w-20 text-green-500" />
-                  )}
+                   {statusStyles.icon}
                 </motion.div>
                 <div className="flex-1 text-center md:text-left">
-                  <h2 className={cn("text-2xl font-bold", isPhishing ? "text-red-400" : "text-green-400")}>
-                    {isPhishing ? "Potential Threat Detected" : "URL Appears Safe"}
+                  <h2 className={cn("text-2xl font-bold", statusStyles.textColor)}>
+                    {statusStyles.title}
                   </h2>
                    <div className="relative mt-2 h-6 w-full bg-gray-700/50 rounded-full overflow-hidden border border-white/10">
                     <motion.div
-                      className={cn("h-full rounded-full", isPhishing ? "bg-gradient-to-r from-red-600 to-red-400" : "bg-gradient-to-r from-green-600 to-green-400")}
+                      className={cn("h-full rounded-full", statusStyles.gradient)}
                       style={{ width: `${confidenceLevel}%` }}
                       initial={{ width: 0 }}
                       animate={{ width: `${confidenceLevel}%` }}
@@ -183,7 +218,7 @@ export default function UrlScannerPage() {
               </div>
               <div className="mt-6 p-4 bg-black/30 rounded-lg border border-white/10">
                 <h4 className="font-semibold text-pink-400 mb-2">AI Analysis Report:</h4>
-                <p className="text-sm text-pink-300/80 font-mono">{result.explanation}</p>
+                <p className="text-sm text-pink-300/80 font-mono">{result.reason}</p>
               </div>
             </motion.div>
           )}
